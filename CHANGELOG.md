@@ -1,5 +1,77 @@
 # @jmfederico/pi-web
 
+## 1.202610.0
+
+### Patch Changes
+
+- d4bff09: Show chat activity in a compact, bottom-centered overlay attached to the input divider, without shifting the transcript when it appears or disappears. Hide the indicator and remove its reserved bottom padding while idle, giving conversations more vertical space, especially on phones.
+- cf23269: Wake waiting parent sessions when a tracked child's prompt fails before its agent starts, and include the failure reason in the completion notice without notifying for standalone commands or compaction.
+- fa56a98: Clean up orphan unread completions in the background after project/workspace removal or new completions, preventing permanently stuck indicators. Cleanup is coalesced with a one-minute delay and skips empty catalogs; ordinary reads do not trigger workspace scans. When workspace discovery is complete, re-adding a project first clears historical orphan unread state. Session and project files are preserved. Project add/remove operations now require the session daemon.
+- 5cd88b5: Refresh the workspace session list when the app returns to the foreground or reconnects, so sessions created while disconnected appear without a page reload.
+- 3519535: Serve content-hashed client assets under `assets/` with an immutable one-year cache policy so reloads skip revalidating them. The app shell and other static files keep revalidating, so new releases are still picked up on the next load.
+- 92d3eee: Display workspace images inline in chat, and let users load images outside the workspace by clicking a path-labelled placeholder that is replaced by the image. Remember explicitly shown images when revisiting the same message in the tab for 15 minutes.
+- f308a51: Load image-heavy chats faster by fetching transcript images separately as they approach the viewport, with consistent placeholders and retry controls. Support local and remote sessions without changing Pi's stored transcripts.
+- cf23269: Show selected-session transcripts without waiting for notifications, and keep later chat refreshes and live assistant output responsive while notifications are slow to load. Notification updates and error reporting are preserved.
+- b10a462: Load browser plugin modules in parallel instead of one at a time to reduce startup delays on high-latency links. A required Terminal plugin still loads alone first, and plugins still register in manifest order.
+- 1e8f5c8: Add `context.navigate(destination)` for browser plugin actions and workspace panels, using normal host navigation and unavailable-destination UI. Captain's Log translations now offer an Open source session action.
+- dd77161: Keep new user messages and assistant responses correctly separated during background refreshes and reconnects, without losing or duplicating streamed text.
+- cf23269: Allow adding healthy projects when an unrelated workspace provider fails or returns incomplete results. Preserve unread completions until workspace discovery recovers, with logged cleanup retries; durable cleanup failures still block admission.
+- a923302: Dismiss unanswered questions when a queued chat message reaches the conversation, including questions posted after the message was queued.
+- 0e4d29c: Keep project and machine dialog actions reachable on short phone screens by fitting dialogs within their padded backdrop and allowing project content to scroll. Fit model, authentication, and command pickers to the available backdrop height as well.
+- cf23269: Restrict federated session media to supported raster images and prevent remote error pages or weak security headers from serving executable content.
+- b458d6a: Restore project, workspace, and session URLs without waiting for plugin modules to load. Routes that name a workspace tool now also restore their selection immediately and wait for plugins only to resolve the tool, so opening a session link on a slow connection no longer blocks on every plugin download.
+- 25377c9: Release the previous transcript's DOM when switching sessions or machines, preventing retained marker nodes from accumulating during repeated navigation while preserving incremental updates within the current session.
+- 055291b: Allow instructed thinking-level overrides when spawning independent sessions or tracked subsessions. Omitted levels still inherit from the parent, and valid levels are adjusted to the selected model's capabilities.
+- 044defb: Keep the current session selected when an older machine navigation finishes loading after you navigate away and back.
+- cf23269: Fix local Markdown images in Windows workspaces, including remote machines and network shares, so workspace images load normally and outside images retain valid paths and approval controls.
+
+## 1.202609.1
+
+### Patch Changes
+
+- 5428a33: Order archived sessions by newest activity, consistent with active sessions, and process bulk archives oldest first using existing metadata without reading archived transcripts.
+- 158c834: Bound session-list first-message previews to prevent oversized sidebar payloads while preserving complete session data.
+- 0817e8b: Make Files an enabled-by-default bundled browser plugin that can be disabled independently. Preserve workspace browsing, previews, downloads, and cancellable uploads; disabling the panel leaves workspace-file access available to attachments and other plugins.
+- 2e8fd91: Add confirmed Clone and Go back shortcuts beside Copy on persisted chat messages.
+- 00f5b80: Open relative chat Markdown file links (including `./` paths and redundant separators) and absolute paths inside the session workspace in the Files panel through an optional plugin file-opening hook. Keep downloads as the fallback when no enabled panel handles the file, and for modifier/new-tab clicks. Preserve web, email, anchor, and other root-relative links.
+- a18b194: Show all matching slash commands and skills in scrollable autocomplete instead of limiting results to twelve. Display prompt-template argument hints beside commands and as editor ghost text after selection, including hints for `/name` and `/compact`.
+- cd467f4: Allow agents to stop or restart their hosting session daemon when explicitly authorized by the user, with interruption warnings and detached scheduling guidance.
+- c73b9d4: Deliver Terminal as a required bundled browser/server plugin while preserving shell panels, replay, reconnect, command execution, and selected-machine workflows. Pair browser and server revisions, scope requests and streaming channels to the workspace, and provide safe-start recovery when Terminal cannot activate.
+- 3625a62: Fix web app manifest loading behind authenticating reverse proxies by including credentials in manifest requests.
+- 4553f81: Keep Terminal shell selection and URLs correct when switching projects or workspaces, starting or closing shells, and reconnecting during overlapping loads. Prevent superseded Terminal navigation from starting an unwanted shell or overwriting a newer selection.
+- 77c4f52: Add independently configurable desktop and touch-or-narrow-screen send-message shortcuts in Settings → Keyboard. Support Gmail-style app shortcuts such as `g p`, without intercepting ordinary typing in editable fields.
+- 702a4b8: Keep spawned sessions and Relay handoffs on the inherited model unless their instructions request a specific model or a model choice.
+- 551b106: Let plugin backends create visible hosted conversations without an initial prompt and exchange native Pi package events with new or explicitly selected existing sessions. Conversations survive initial completion and plugin disposal; disconnecting a plugin does not stop agent work. Wait for extension startup before accepting work, and report provider failures and retry cancellation accurately.
+- bb77eff: Allow unrelated environment variables when checking managed systemd services while still rejecting directly configured `PI_WEB_CONFIG` mismatches. Accept `EnvironmentFile=` with a nonfatal warning that file-based config overrides cannot be verified; readiness checks use the installed config path unless explicitly overridden for the command.
+
+  When restarting managed services, wait for the web/UI service to become ready before restarting the session daemon. If web startup fails, leave the daemon untouched. Development startup follows the same ordering and allows extra time for plugin builds.
+
+- aa1d06c: Constrain markdown-rendered images to the message card width: add `img { max-width: 100%; }` to the formatted-text markdown styles so wide embedded screenshots no longer overflow the transcript card and viewport.
+- 9505966: Introduce browser plugin API v4 and server plugin API v3, with dependency-aware lifecycles, typed capabilities, exact-package peer requests and channels, persistent plugin storage directories, and live workspace access. Plugin authors also get a typed selected-session snapshot and early validation of required hosted-session capabilities. Shipped examples and Captain's Log require PI WEB `^1.202609.1`, excluding earlier releases without these APIs.
+
+  **Breaking change for plugins:** Existing plugins must be adapted to this version of PI WEB. Previous plugin API versions are not compatible.
+
+- b06952b: Replace the session-bridge greeting example with an opt-in Workspace Reviews Pi package. Review uncommitted workspace changes in a dedicated session, save correlated findings or failure status in plugin-owned storage, and browse saved reviews as plain text. The package is not installed by default.
+- bc574ea: Make Relay development legs prioritize usable behaviour, connect necessary prerequisites, and reserve research-only work for concrete implementation blockers.
+- 2d64b8a: Support Pi 0.87's transcript-based SDK, including automatic session titles. Require Pi 0.87.0 or newer.
+- 2d64b8a: Display visible messages and compaction summaries appended by Pi extension boundaries in live chat without requiring a reconnect.
+- c7b20b9: Add tab pinning across desktop and mobile navigation, with all tabs shown when none are pinned, plus an independent option to collapse mobile tabs into a searchable navigation menu. Preserve breadcrumbs, separate actions, and pin preferences across layouts; show only layout-relevant destinations and highlight the menu when it contains the active hidden tab. Open Navigation is available in Actions and can be assigned a keyboard shortcut.
+- 28c778e: Add star controls to the model and thinking-level selectors to save defaults for new sessions without changing the current session.
+- 7085035: Reject symlinked saved records on Windows in Captain's Log and the workspace review example, matching their behavior on Unix.
+- Let server plugins report project-, workspace-, and session-scoped notices with clear plugin attribution. Validate and limit retained plugin notices without displacing core notices, stop accepting reports after plugin shutdown, and preserve Terminal workspace-removal failure messages.
+- c139779: Preserve explicit project trust choices when navigation changes while adding a project, and report failures to save those choices.
+- 851bb2f: Preserve requested URLs for unavailable machines, projects, workspaces, sessions, and tools instead of silently showing a different destination. Show failures in the requested content area and leave valid tabs available for recovery. Unknown views show a warning and a responsive display fallback without rewriting the URL; the warning clears on valid navigation. Panel selection (`view=navigation|chat|workspace`) is now separate from workspace tab selection (`tool`); old URLs that put a tab ID in `view` need updating.
+- 628da41: Close pending questions when /tree moves to a different conversation position, without waking the agent or adding messages to the selected branch.
+- e65b9ce: Reduce unnecessary interface updates during session activity and background terminal/Git refreshes. Preserve session row identity when lists change, and keep background Git refreshes from flashing loading controls.
+- 5e96917: Give sessions being created a unique URL and safely replace it when ready, preserving tool/view changes without taking over navigation elsewhere. Recover expired creation links without starting another session.
+- 1ba2d03: Add Captain's Log, an optional prebuilt Pi package that retells the selected conversation's last completed assistant reply as a pirate briefing without changing the original. Install it from Available packages and explicitly enable its plugin; no compilation is required. Its one-button panel creates or reuses a dedicated conversation, preserves previous results, and displays Markdown without executing embedded HTML or loading remote images.
+- becd39e: Add plugin-provided previews to chat Markdown, Files Markdown previews, and standalone text files, including bundled Mermaid diagrams rendered locally in a network-blocked sandbox. Previews default to manual rendering unless a plugin opts into automatic rendering; raw source and copying remain available during streaming or failures.
+
+  Choose a renderer and switch between Render and Raw per diagram or file. Files respects saved Raw/Preview preferences and URL overrides, with scrollable previews and a pinned header. Chat remembers explicit per-diagram choices in the current tab for 15 minutes; changed source or unavailable renderers clear those choices.
+
+- 7ae2bd5: Show an advisory notice when a shared session was recently active in another PI WEB instance, helping users avoid working on the same conversation in both instances at once. Detection is best-effort and does not lock the session or prevent concurrent work.
+- a7c8339: Keep the address bar and displayed machine, project, workspace, session, and tool aligned during overlapping navigation and loading. Preserve loaded lists when switching views, and prevent stale results, plugin failures, or session recovery from replacing a newer destination. Fix archive and history navigation from abbreviated session links, and preserve the selected session during cached-session recovery.
+
 ## 1.202609.0
 
 ### Patch Changes

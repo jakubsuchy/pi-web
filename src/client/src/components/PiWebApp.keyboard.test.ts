@@ -8,6 +8,9 @@ import { AuthDialog } from "./AuthDialog";
 import { ChatView } from "./ChatView";
 import { ModalSurface } from "./ModalSurface";
 import { PiWebApp } from "./PiWebApp";
+import { PromptEditor } from "./PromptEditor";
+import type { TranscriptImage } from "./TranscriptImage";
+import { settleImage } from "./imagePresentation.testSupport";
 
 const IMAGE_DATA = "iVBORw0KGgo=";
 
@@ -32,6 +35,28 @@ describe("PiWebApp global shortcut modality boundary", () => {
     expect(actionPaletteIsOpen(app)).toBe(true);
     expect(event.defaultPrevented).toBe(true);
     expect(targetKeyDown).not.toHaveBeenCalled();
+  });
+
+  it("lets a composer send binding override an app shortcut only inside the editor", async () => {
+    const app = new PiWebApp();
+    await waitForBuiltInPlugins(app);
+    const editor = new PromptEditor();
+    editor.shortcuts = { "composer.send.desktop": "mod+k", "composer.send.mobile": "mod+k" };
+    editor.onSend = vi.fn();
+    document.body.append(editor);
+    await editor.updateComplete;
+    Object.defineProperty(app, "promptEditor", { configurable: true, value: editor });
+    editor.replaceText("Hello");
+    const target = requiredElement(editor.view?.contentDOM, "composer input");
+
+    dispatchShortcutThroughApp(app, target);
+    expect(editor.onSend).toHaveBeenCalledOnce();
+    expect(actionPaletteIsOpen(app)).toBe(false);
+    dispatchShortcutThroughApp(app, target); // Empty composer still owns the combination.
+    expect(actionPaletteIsOpen(app)).toBe(false);
+
+    dispatchShortcutThroughApp(app, appendKeyTarget());
+    expect(actionPaletteIsOpen(app)).toBe(true);
   });
 
   it("leaves capture-phase keyboard handling with a rendered shared modal", async () => {
@@ -171,7 +196,14 @@ async function openImageZoom(app: PiWebApp): Promise<HTMLElement> {
   const container = renderApp(app);
   const view = requiredElement(container.querySelector<ChatView>("chat-view"), "chat view");
   await view.updateComplete;
-  const image = requiredElement(view.shadowRoot?.querySelector<HTMLElement>(".chat-image"), "chat image");
+  expect(view.sessionCwd).toBe(selectedSession.cwd);
+  const transcript = requiredElement(view.renderRoot.querySelector<TranscriptImage>("pi-web-transcript-image"), "transcript image");
+  const presentation = await settleImage(transcript);
+  presentation.renderRoot.querySelector<HTMLButtonElement>(".placeholder")?.click();
+  await settleImage(transcript);
+  requiredElement(presentation.renderRoot.querySelector("img"), "native image").dispatchEvent(new Event("load"));
+  await presentation.updateComplete;
+  const image = requiredElement(presentation.renderRoot.querySelector<HTMLButtonElement>(".image-button"), "image trigger");
   image.focus();
   image.click();
   await view.updateComplete;

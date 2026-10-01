@@ -76,6 +76,7 @@ export interface PluginActivationResult {
 }
 
 export interface PluginContributions {
+  contentRenderers?: import("../../../plugin-api").ContentRendererContribution[];
   actions?: PluginAction[];
   workspacePanels?: WorkspacePanelContribution[];
   workspaceLabels?: WorkspaceLabelContribution[];
@@ -209,7 +210,10 @@ export interface PluginPromptEditor {
   getSelection(): { start: number; end: number; text: string } | null;
 }
 
+export type { PluginNavigationDestination } from "../../../plugin-api";
+
 export interface PluginRuntimeContext {
+  navigate: (destination: import("../../../plugin-api").PluginNavigationDestination) => Promise<void>;
   state: AppState;
   prompt: PluginPromptEditor;
   piWebUnstable?: PiWebUnstableRuntimeContext;
@@ -273,6 +277,7 @@ export interface WorkspacePanelNavigationV1 {
 }
 
 export interface WorkspacePanelContext extends WorkspaceContext {
+  navigate: (destination: import("../../../plugin-api").PluginNavigationDestination) => Promise<void>;
   prompt: PluginPromptEditor;
   terminal: WorkspacePanelTerminal;
   /** Contribution-scoped address-bar state for deep links and browser history. */
@@ -298,6 +303,8 @@ export interface WorkspacePanelContribution {
   /** Former qualified contribution ids whose namespaced query keys remain readable. */
   navigationAliases?: QualifiedContributionId[];
   visible?: (context: WorkspacePanelContext) => boolean;
+  /** Return a deep-link query to open a workspace-relative file, or undefined if unsupported. */
+  fileOpenQuery?: (context: WorkspacePanelContext, path: string) => Readonly<Record<string, ContributionQueryValue>> | undefined;
   badge?: (context: WorkspacePanelContext) => string | number | TemplateResult | undefined;
   invalidationResources?: readonly WorkspaceResource[];
   onInvalidate?: (context: WorkspacePanelContext, invalidation?: WorkspaceInvalidation) => void | Promise<void>;
